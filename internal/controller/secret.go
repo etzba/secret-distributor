@@ -19,7 +19,7 @@ func (r *DistributionReconciler) getSecretByName(secretName string) (*v1.Secret,
 	}
 
 	secret := &v1.Secret{}
-	if err := r.Client.Get(context.Background(), client.ObjectKey{
+	if err := r.Get(context.Background(), client.ObjectKey{
 		Namespace: sdNamesapce,
 		Name:      secretName,
 	}, secret); err != nil {

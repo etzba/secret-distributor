@@ -55,14 +55,14 @@ type DistributionReconciler struct {
 func (r *DistributionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = logf.FromContext(ctx)
 
-	logger := logger.New()
-	r.Logger = logger
+	log := logger.New()
+	r.Logger = log
 
-	r.Logger.Info(fmt.Sprintf("Found change in namespace %s. Start reconcile", req.NamespacedName.Namespace))
+	r.Logger.Info(fmt.Sprintf("Found change in namespace %s. Start reconcile", req.Namespace))
 
 	var resource secdistv1.Distribution
 
-	if err := r.Client.Get(context.Background(), req.NamespacedName, &resource); err != nil {
+	if err := r.Get(context.Background(), req.NamespacedName, &resource); err != nil {
 		if errors.IsNotFound(err) {
 			r.Logger.Info("distribution resource is not found. skipping..")
 			return ctrl.Result{Requeue: false, RequeueAfter: 0}, nil

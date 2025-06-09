@@ -32,6 +32,6 @@ func (l *Log) Error(msg string, err error) {
 }
 
 func formatTime(now time.Time) string {
-	time := strings.Replace(now.UTC().Format(time.RFC3339), "T", " ", -1)
-	return "[" + strings.Replace(time, "Z", "", -1) + "]"
+	t := strings.ReplaceAll(now.UTC().Format(time.RFC3339), "T", " ")
+	return "[" + strings.ReplaceAll(t, "Z", "") + "]"
 }

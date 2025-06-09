@@ -74,7 +74,7 @@ func (r *DistributionReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	var object v1.Secret
 	obj, err := r.getSecretByName(resource.Spec.SecretName)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{Requeue: false}, err
 	}
 
 	if err := r.Get(ctx, req.NamespacedName, &object); err != nil {

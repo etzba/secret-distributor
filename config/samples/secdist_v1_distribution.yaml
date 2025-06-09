@@ -1,0 +1,9 @@
+apiVersion: secdist.etzba.com/v1
+kind: Distribution
+metadata:
+  labels:
+    app.kubernetes.io/name: secret-distributor
+    app.kubernetes.io/managed-by: kustomize
+  name: distribution-sample
+spec:
+  # TODO(user): Add fields here

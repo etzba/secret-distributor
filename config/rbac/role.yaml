@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - secdist.etzba.com
+  resources:
+  - distributions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - secdist.etzba.com
+  resources:
+  - distributions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - secdist.etzba.com
+  resources:
+  - distributions/status
+  verbs:
+  - get
+  - patch
+  - update

@@ -18,17 +18,23 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	secdistv1 "github.com/etzba/secret-distributor/api/v1"
+	"github.com/etzba/secret-distributor/pkg/logger"
 )
 
 // DistributionReconciler reconciles a Distribution object
 type DistributionReconciler struct {
+	Logger *logger.Log
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -49,7 +55,49 @@ type DistributionReconciler struct {
 func (r *DistributionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = logf.FromContext(ctx)
 
-	// TODO(user): your logic here
+	logger := logger.New()
+	r.Logger = logger
+
+	r.Logger.Info(fmt.Sprintf("Found change in namespace %s. Start reconcile", req.NamespacedName.Namespace))
+
+	var resource secdistv1.Distribution
+
+	if err := r.Client.Get(context.Background(), req.NamespacedName, &resource); err != nil {
+		if errors.IsNotFound(err) {
+			r.Logger.Info("distribution resource is not found. skipping..")
+			return ctrl.Result{Requeue: false, RequeueAfter: 0}, nil
+		}
+		r.Logger.Error("could not fetch resource"+resource.Kind, nil)
+		return ctrl.Result{Requeue: true, RequeueAfter: time.Minute}, err
+	}
+
+	var object v1.Secret
+	obj, err := r.getSecretByName(resource.Spec.SecretName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Get(ctx, req.NamespacedName, &object); err != nil {
+		if errors.IsNotFound(err) {
+			r.Logger.Info("Not found. Creating secret")
+			if err := r.Create(ctx, obj); err != nil {
+				r.Logger.Error("Could not create secret", err)
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
+
+		if err := r.Update(ctx, &object); err != nil {
+			if errors.IsInvalid(err) {
+				r.Logger.Error("Invalid update", err)
+			} else {
+				r.Logger.Error("Unable to update secret", err)
+			}
+			return ctrl.Result{}, nil
+		}
+
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
 	return ctrl.Result{}, nil
 }

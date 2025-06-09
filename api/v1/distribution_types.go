@@ -28,8 +28,8 @@ type DistributionSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Distribution. Edit distribution_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// SecretName is the name of the secret in secret-distributor namespace, for distribution.
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // DistributionStatus defines the observed state of Distribution.

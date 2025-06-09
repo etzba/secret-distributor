@@ -8,4 +8,14 @@ layout:
 - go.kubebuilder.io/v4
 projectName: secret-distributor
 repo: github.com/etzba/secret-distributor
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: etzba.com
+  group: secdist
+  kind: Distribution
+  path: github.com/etzba/secret-distributor/api/v1
+  version: v1
 version: "3"

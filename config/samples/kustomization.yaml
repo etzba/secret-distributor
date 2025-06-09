@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- secdist_v1_distribution.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

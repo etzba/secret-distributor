@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,6 +39,7 @@ type DistributionReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=secdist.etzba.com,resources=distributions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=secdist.etzba.com,resources=distributions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=secdist.etzba.com,resources=distributions/finalizers,verbs=update
 
@@ -71,24 +71,33 @@ func (r *DistributionReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Minute}, err
 	}
 
-	var object v1.Secret
-	obj, err := r.getSecretByName(resource.Spec.SecretName)
+	secret, err := r.readFromSecretAndCreateNewSecret(resource.Spec.SecretName, req.Namespace)
 	if err != nil {
 		r.Logger.Error("Failed to get secret by name", err)
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	if err := r.Get(ctx, req.NamespacedName, &object); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, secret); err != nil {
 		if errors.IsNotFound(err) {
 			r.Logger.Info("Not found. Creating secret")
-			if err := r.Create(ctx, obj); err != nil {
+			if err := r.Create(ctx, secret); err != nil {
+				if errors.IsAlreadyExists(err) {
+					if err := r.Update(ctx, secret); err != nil {
+						if errors.IsInvalid(err) {
+							r.Logger.Error("Invalid update", err)
+						} else {
+							r.Logger.Error("Unable to update secret", err)
+						}
+						return ctrl.Result{}, nil
+					}
+				}
 				r.Logger.Error("Could not create secret", err)
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
 		}
 
-		if err := r.Update(ctx, &object); err != nil {
+		if err := r.Update(ctx, secret); err != nil {
 			if errors.IsInvalid(err) {
 				r.Logger.Error("Invalid update", err)
 			} else {

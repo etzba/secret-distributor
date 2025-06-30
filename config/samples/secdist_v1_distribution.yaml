@@ -4,6 +4,6 @@ metadata:
   labels:
     app.kubernetes.io/name: secret-distributor
     app.kubernetes.io/managed-by: kustomize
-  name: distribution-sample
+  name: docker-config-distribution
 spec:
-  # TODO(user): Add fields here
+  secretName: docker-config

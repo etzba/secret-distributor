@@ -40,7 +40,7 @@ jobs:
           GOOS: linux 
           GOARCH: amd64
         run: |
-          go build -a -o app main.go
+          cd cmd && go build -a -o app main.go
 
   lint:
     name: Run golangci linter on ubuntu

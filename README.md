@@ -1,10 +1,10 @@
 # secret-distributor
 
-A kubernetes operator for managing secrets inside a cluster. No password or secret management tool that require authentication and external database, just an operator that spread secrets inside a cluster.
+A kubernetes operator for managing secrets inside a cluster. No password or secret management tool that requires authentication and external database, just an operator that spreads secrets inside a cluster.
 
 ### Why to use this operator
 
-Unlike secret management tools, this operator help setting up secrets in a namespace without external HTTP access to another api server, no database to maintain and no need to setup configuration.
+Unlike secret management tools, this operator helps setting up secrets in a namespace without external HTTP access to another api server, no database to maintain and no need to set up configuration.
 
 ### How does it work
 
@@ -30,6 +30,6 @@ In this case for example, you are solving a problem of having no way to set dock
 
 Assuming you'd like to run a test environment automatically and set your database or redis secrets automatically from a central location in the cluster - just add a crd with the relevant secret to setup.
 
-##### Distribution of docker config jsons
+##### Distribution of docker config json secrets
 
 It is very easy to create a new docker secret to pull images from repository by adding a CRD to the new namespace

@@ -1,3 +1,12 @@
+<hr>
+<p align="center">
+  <img src="etzba.png" alt="Etzba"/>
+</p>
+<hr>
+
+
+<hr>
+
 # secret-distributor
 
 A kubernetes operator for managing secrets inside a cluster. No password or secret management tool that requires authentication and external database, just an operator that spreads secrets inside a cluster.

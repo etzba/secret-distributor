@@ -42,3 +42,10 @@ Assuming you'd like to run a test environment automatically and set your databas
 ##### Distribution of docker config json secrets
 
 It is very easy to create a new docker secret to pull images from repository by adding a CRD to the new namespace
+
+### install secret-distributor
+
+```
+helm install secret-distributor chart/ -n secret-distributor --create-namespace
+helm upgrade --install secret-distributor chart/ -n secret-distributor 
+```

@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: secret-distributor
+    app.kubernetes.io/managed-by: kustomize
+  name: secret-distributor
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-distributor
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs: [ "create", "delete","get","list","patch","update","watch"]
+- apiGroups:
+  - secdist.etzba.com
+  resources:
+  - distributions
+  verbs: [ "create", "delete","get","list","patch","update","watch"]
+- apiGroups:
+  - secdist.etzba.com
+  resources:
+  - distributions/finalizers
+  verbs: ["update"]
+- apiGroups:
+  - secdist.etzba.com
+  resources:
+  - distributions/status
+  verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: secret-distributor
+    app.kubernetes.io/managed-by: kustomize
+  name: secret-distributorbinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: secret-distributor
+subjects:
+- kind: ServiceAccount
+  name: secret-distributor
+  namespace: {{ .Release.Namespace }}

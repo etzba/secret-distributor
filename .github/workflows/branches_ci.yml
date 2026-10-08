@@ -1,0 +1,142 @@
+name: Branches CI pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Run unit tests on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Running Tests
+        run: |
+          go mod tidy
+          make test
+
+  go-build:
+    name: Build app on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build app
+        env:
+          CGO_ENABLED: 0 
+          GOOS: linux 
+          GOARCH: amd64
+        run: |
+          go build -a -o app main.go
+
+  lint:
+    name: Run golangci linter on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.10.0
+
+  build-container:
+    name: Build and push container image
+    needs: [test, go-build] 
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up cosign
+        uses: sigstore/cosign-installer@main
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: etzba
+          password: ${{ secrets.ghcrToken }}
+      - name: Publish container image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          builder: ${{ steps.buildx.outputs.name }}
+          file: ./Dockerfile
+          platforms: linux/amd64
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+      - name: Publish container image to ghcr.io
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }} , ghcr.io/${{ github.repository }}:${{ steps.extract_branch.outputs.branch }}
+          builder: ${{ steps.buildx.outputs.name }}
+          file: ./Dockerfile
+          platforms: linux/amd64
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+      - name: sign container image
+        run: |
+            echo '${{ secrets.COSIGN_KEY }}' > cosign.key
+            cosign sign --key cosign.key ghcr.io/${{ github.repository }}:${{ github.sha }}
+        shell: bash
+        env:
+          COSIGN_KEY: |
+            ${{secrets.COSIGN_KEY}}
+          COSIGN_PASSWORD: ""
+      - name: Check images
+        run: |
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository }}:${{ github.sha }}
+          echo '${{ secrets.COSIGN_PUBLIC_KEY }}' > cosign.pub
+          cosign verify --key cosign.pub ghcr.io/${{ github.repository }}:${{ github.sha }}
+      - name: Checkout repository
+        if: github.event.pull_request.merged == true
+        uses: actions/checkout@v4
+      - name: Set up cosign
+        if: github.event.pull_request.merged == true
+        uses: sigstore/cosign-installer@main
+      - name: Log in to docker hub
+        if: github.event.pull_request.merged == true
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: etzba
+          password: ${{ secrets.dockerHubToken }}
+ 

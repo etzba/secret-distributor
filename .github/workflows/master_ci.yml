@@ -1,8 +1,12 @@
-name: CICD
+name: master
 
 on:
   push:
-  pull_request:
+    branches:
+      - master
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
 
 jobs:
   test:
@@ -40,7 +44,7 @@ jobs:
           GOOS: linux 
           GOARCH: amd64
         run: |
-          cd cmd && go build -a -o app main.go
+          go build -a -o app main.go
 
   lint:
     name: Run golangci linter on ubuntu
@@ -92,12 +96,12 @@ jobs:
             org.opencontainers.image.url=${{ github.event.repository.html_url }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ env.VERSION }}
-      - name: Publish container image
+      - name: Publish container image to ghcr.io
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }} , ghcr.io/${{ github.repository }}:master ,  ghcr.io/${{ github.repository }}:latest
           builder: ${{ steps.buildx.outputs.name }}
           file: ./Dockerfile
           platforms: linux/amd64
@@ -122,3 +126,43 @@ jobs:
           docker pull ghcr.io/${{ github.repository }}:${{ github.sha }}
           echo '${{ secrets.COSIGN_PUBLIC_KEY }}' > cosign.pub
           cosign verify --key cosign.pub ghcr.io/${{ github.repository }}:${{ github.sha }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up cosign
+        uses: sigstore/cosign-installer@main
+      - name: Log in to docker hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: etzba
+          password: ${{ secrets.dockerHubToken }}
+      - name: Publish container image to docker hub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: docker.io/${{ github.repository }}:latest
+          builder: ${{ steps.buildx.outputs.name }}
+          file: ./Dockerfile
+          platforms: linux/amd64
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=latest
+            org.opencontainers.image.version=${{ env.VERSION }}
+      - name: sign container image
+        run: |
+            echo '${{ secrets.COSIGN_KEY }}' > cosign.key
+            cosign sign --key cosign.key docker.io/${{ github.repository }}:latest
+        shell: bash
+        env:
+          COSIGN_KEY: |
+            ${{secrets.COSIGN_KEY}}
+          COSIGN_PASSWORD: ""
+      - name: Check images
+        run: |
+          docker buildx imagetools inspect docker.io/${{ github.repository }}:latest
+          docker pull docker.io/${{ github.repository }}:latest
+          echo '${{ secrets.COSIGN_PUBLIC_KEY }}' > cosign.pub
+          cosign verify --key cosign.pub docker.io/${{ github.repository }}:latest

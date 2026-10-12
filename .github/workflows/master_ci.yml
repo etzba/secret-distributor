@@ -1,4 +1,4 @@
-name: master
+name: master CI pipeline
 
 on:
   push:
@@ -61,7 +61,7 @@ jobs:
       - name: Run linter
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.1.0
+          version: v2.10.0
 
   build-container:
     name: Build and push container image

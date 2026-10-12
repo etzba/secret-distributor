@@ -2,6 +2,8 @@ name: Branches CI pipeline
 
 on:
   push:
+    branches:
+      - "*"
   pull_request:
 
 jobs:
